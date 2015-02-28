@@ -1770,7 +1770,7 @@ class TableTest extends TestCase
             $this->assertSame($data, $entity);
             $calledAfterCommit = true;
         };
-        $table->eventManager()->attach($listenerAfterCommit, 'Model.afterSaveCommit');
+        $table->eventManager()->attach($listenerAfterCommit, 'Model.afterAtomicSave');
 
         $this->assertSame($data, $table->save($data));
         $this->assertEquals($data->id, self::$nextUserId);
@@ -1779,11 +1779,11 @@ class TableTest extends TestCase
     }
 
     /**
-     * Asserts that afterSaveCommit is not triggered for non-atomic saves
+     * Asserts that afterAtomicSave is not triggered for non-atomic saves
      *
      * @return void
      */
-    public function testAfterSaveCommitForNonAtomic()
+    public function testAfterAtomicSaveForNonAtomic()
     {
         $table = TableRegistry::get('users');
         $data = new \Cake\ORM\Entity([
@@ -1803,7 +1803,7 @@ class TableTest extends TestCase
         $listenerAfterCommit = function ($e, $entity, $options) use ($data, &$calledAfterCommit) {
             $calledAfterCommit = true;
         };
-        $table->eventManager()->attach($listenerAfterCommit, 'Model.afterSaveCommit');
+        $table->eventManager()->attach($listenerAfterCommit, 'Model.afterAtomicSave');
 
         $this->assertSame($data, $table->save($data, ['atomic' => false]));
         $this->assertEquals($data->id, self::$nextUserId);
@@ -1812,11 +1812,11 @@ class TableTest extends TestCase
     }
 
     /**
-     * Asserts the afterSaveCommit is not triggered if transaction is running.
+     * Asserts the afterAtomicSave is not triggered if transaction is running.
      *
      * @return [type]
      */
-    public function testAfterSaveCommitWithTransactionRunning()
+    public function testAfterAtomicSaveWithTransactionRunning()
     {
         $table = TableRegistry::get('users');
         $data = new \Cake\ORM\Entity([
@@ -1829,7 +1829,7 @@ class TableTest extends TestCase
         $listener = function ($e, $entity, $options) use (&$called) {
             $called = true;
         };
-        $table->eventManager()->attach($listener, 'Model.afterSaveCommit');
+        $table->eventManager()->attach($listener, 'Model.afterAtomicSave');
 
         $this->connection->begin();
         $this->assertSame($data, $table->save($data));
@@ -1881,7 +1881,7 @@ class TableTest extends TestCase
         $listenerAfterCommit = function ($e, $entity, $options) use ($data, &$calledAfterCommit) {
             $calledAfterCommit = true;
         };
-        $table->eventManager()->attach($listenerAfterCommit, 'Model.afterSaveCommit');
+        $table->eventManager()->attach($listenerAfterCommit, 'Model.afterAtomicSave');
 
         $this->assertFalse($table->save($data));
         $this->assertFalse($called);
@@ -1889,12 +1889,12 @@ class TableTest extends TestCase
     }
 
     /**
-     * Asserts that afterSaveCommit callback is triggered only for primary table
+     * Asserts that afterAtomicSave callback is triggered only for primary table
      *
      * @group save
      * @return void
      */
-    public function testAfterSaveCommitTriggeredOnlyForPrimaryTable()
+    public function testAfterAtomicSaveTriggeredOnlyForPrimaryTable()
     {
         $entity = new \Cake\ORM\Entity([
             'title' => 'A Title',
@@ -1911,13 +1911,13 @@ class TableTest extends TestCase
         $listenerForArticle = function ($e, $entity, $options) use (&$calledForArticle) {
             $calledForArticle = true;
         };
-        $table->eventManager()->attach($listenerForArticle, 'Model.afterSaveCommit');
+        $table->eventManager()->attach($listenerForArticle, 'Model.afterAtomicSave');
 
         $calledForAuthor = false;
         $listenerForAuthor = function ($e, $entity, $options) use (&$calledForAuthor) {
             $calledForAuthor = true;
         };
-        $table->authors->eventManager()->attach($listenerForAuthor, 'Model.afterSaveCommit');
+        $table->authors->eventManager()->attach($listenerForAuthor, 'Model.afterAtomicSave');
 
         $this->assertSame($entity, $table->save($entity));
         $this->assertFalse($entity->isNew());
@@ -2468,7 +2468,7 @@ class TableTest extends TestCase
         $mock->expects($this->at(4))
             ->method('dispatch')
             ->with($this->logicalAnd(
-                $this->attributeEqualTo('_name', 'Model.afterDeleteCommit'),
+                $this->attributeEqualTo('_name', 'Model.afterAtomicDelete'),
                 $this->attributeEqualTo(
                     'data',
                     ['entity' => $entity, 'options' => $options]
@@ -2481,7 +2481,7 @@ class TableTest extends TestCase
     }
 
     /**
-     * Test afterDeleteCommit not called for non-atomic delete
+     * Test afterAtomicDelete not called for non-atomic delete
      *
      * @return void
      */
@@ -2503,7 +2503,7 @@ class TableTest extends TestCase
         $listenerAfterCommit = function ($e, $entity, $options) use ($data, &$calledAfterCommit) {
             $calledAfterCommit = true;
         };
-        $table->eventManager()->attach($listenerAfterCommit, 'Model.afterDeleteCommit');
+        $table->eventManager()->attach($listenerAfterCommit, 'Model.afterAtomicDelete');
 
         $table->delete($data, ['atomic' => false]);
         $this->assertTrue($called);
@@ -2511,11 +2511,11 @@ class TableTest extends TestCase
     }
 
     /**
-     * Test that afterDeleteCommit is only triggered for primary table
+     * Test that afterAtomicDelete is only triggered for primary table
      *
      * @return void
      */
-    public function testAfterDeleteCommitTriggeredOnlyForPrimaryTable()
+    public function testAfterAtomicDeleteTriggeredOnlyForPrimaryTable()
     {
         $table = TableRegistry::get('authors');
         $table->hasOne('articles', [
@@ -2527,13 +2527,13 @@ class TableTest extends TestCase
         $listener = function ($e, $entity, $options) use (&$called) {
             $called = true;
         };
-        $table->eventManager()->attach($listener, 'Model.afterDeleteCommit');
+        $table->eventManager()->attach($listener, 'Model.afterAtomicDelete');
 
         $called2 = false;
         $listener = function ($e, $entity, $options) use (&$called2) {
             $called2 = true;
         };
-        $table->articles->eventManager()->attach($listener, 'Model.afterDeleteCommit');
+        $table->articles->eventManager()->attach($listener, 'Model.afterAtomicDelete');
 
         $entity = $table->get(1);
         $this->assertTrue($table->delete($entity));
